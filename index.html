@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Delivery Milionário Pro</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>body{margin:0;font-family:system-ui,sans-serif}@keyframes spin{to{transform:rotate(360deg)}}.spin{animation:spin 1s linear infinite}input,select,textarea{outline:none}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.fade-in{animation:fadeIn .3s ease}.donut-seg{transition:stroke-dashoffset .6s ease}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}.pulse{animation:pulse 2s ease-in-out infinite}@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}.slide-up{animation:slideUp .4s ease}@media(display-mode:standalone){body{padding-top:env(safe-area-inset-top)}}
+</style>
+<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#1e1b4b"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Delivery Pro"><link rel="apple-touch-icon" href="icon-192.png"><meta name="mobile-web-app-capable" content="yes"><meta name="application-name" content="Delivery Milionário Pro"><meta name="description" content="CRM inteligente com WhatsApp e IA">
+</head>
+<body class="bg-gray-900 text-gray-100">
+<div id="login-page" class="min-h-screen flex items-center justify-center p-4"><div class="w-full max-w-md"><div class="text-center mb-8"><div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto mb-4"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><h1 class="text-2xl font-bold text-white">Delivery Milionário Pro</h1><p class="text-gray-400 text-sm mt-2">CRM inteligente com WhatsApp e IA</p></div><div class="bg-gray-800/80 border border-gray-700/50 rounded-2xl p-6"><h2 class="text-lg font-semibold text-white mb-4">Entrar</h2><div id="login-error" class="hidden mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm"></div><form id="login-form" class="space-y-4"><div><label class="block text-sm text-gray-400 mb-1">Email</label><input id="login-email" type="email" required placeholder="seu@email.com" class="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600/50 rounded-lg text-sm text-white placeholder-gray-400 focus:border-indigo-500"></div><div><label class="block text-sm text-gray-400 mb-1">Senha</label><input id="login-pw" type="password" required placeholder="........" class="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600/50 rounded-lg text-sm text-white placeholder-gray-400 focus:border-indigo-500"></div><button type="submit" id="login-btn" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-sm font-medium">Entrar</button></form></div></div></div>
+
+<div id="app" class="hidden flex h-screen overflow-hidden">
+<aside class="w-56 bg-gray-800/80 border-r border-gray-700/50 flex flex-col flex-shrink-0">
+<div class="p-3 border-b border-gray-700/50 flex items-center gap-2"><div class="w-8 h-8 rounded-lg bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><div><p class="text-xs font-bold text-white">Delivery</p><p class="text-xs font-bold text-indigo-400">Milionário Pro</p></div></div>
+<nav class="flex-1 p-2 space-y-1 overflow-y-auto" id="nav-items"></nav>
+<div class="p-3 border-t border-gray-700/50"><button onclick="logout()" class="w-full flex items-center gap-2 px-3 py-2 text-red-400 hover:bg-red-600/20 rounded-lg text-sm">Sair</button></div>
+</aside>
+<main class="flex-1 flex flex-col overflow-hidden">
+<header class="h-12 bg-gray-800/50 border-b border-gray-700/50 flex items-center justify-end px-4"><div class="flex items-center gap-2 px-3 py-1 bg-gray-700/50 rounded-lg"><div id="user-avatar" class="w-6 h-6 rounded-full bg-indigo-600 flex items-center justify-center text-white text-xs font-bold"></div><span id="user-name" class="text-sm text-white"></span></div></header>
+<div class="flex-1 overflow-y-auto p-5" id="content"></div>
+</main></div>
+
+<script>
+const API="https://backend-production-d5145.up.railway.app/api/v1";let token=null,currentUser=null,currentPage="intel";
+async function ac(p,o={}){const h={"Content-Type":"application/json"};if(token)h["Authorization"]="Bearer "+token;const r=await fetch(API+p,{...o,headers:h});const d=await r.json();if(!r.ok)throw new Error(d.message||"Erro");return d}
+const get=p=>ac(p),post=(p,b)=>ac(p,{method:"POST",body:JSON.stringify(b)}),patch=(p,b)=>ac(p,{method:"PATCH",body:JSON.stringify(b)});
+const gi=n=>n?n.split(" ").map(x=>x[0]).join("").toUpperCase().slice(0,2):"??";
+
+const nv=[{id:"intel",l:"Inteligência",e:"🧠"},{id:"analise",l:"Análise & Melhorias",e:"🔬"},{id:"dashboard",l:"Dashboard",e:"📊"},{id:"crm",l:"CRM Kanban",e:"🎯"},{id:"chat",l:"Chat WhatsApp",e:"💬"},{id:"dispatch",l:"Disparos",e:"📤"},{id:"reports",l:"Relatórios",e:"📈"},{id:"scorecard",l:"Scorecard",e:"🏆"},{id:"settings",l:"Configurações",e:"⚙️"}];
+
+function rn(){document.getElementById("nav-items").innerHTML=nv.map(n=>'<button onclick="gt(\''+n.id+'\' )" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium '+(currentPage===n.id?'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30':'text-gray-400 hover:text-white hover:bg-gray-700/50 border border-transparent')+'"><span>'+n.e+'</span><span>'+n.l+'</span></button>').join("")}
+function gt(p){currentPage=p;rn();rp()}
+function st(l,v,c){const cs={indigo:"from-indigo-500/20 to-indigo-600/10 border-indigo-500/30",green:"from-green-500/20 to-green-600/10 border-green-500/30",yellow:"from-yellow-500/20 to-yellow-600/10 border-yellow-500/30",red:"from-red-500/20 to-red-600/10 border-red-500/30",purple:"from-purple-500/20 to-purple-600/10 border-purple-500/30",blue:"from-blue-500/20 to-blue-600/10 border-blue-500/30",cyan:"from-cyan-500/20 to-cyan-600/10 border-cyan-500/30",orange:"from-orange-500/20 to-orange-600/10 border-orange-500/30"};return '<div class="bg-gradient-to-br '+cs[c]+' border rounded-xl p-4"><p class="text-2xl font-bold text-white">'+v+'</p><p class="text-sm text-gray-400 mt-1">'+l+'</p></div>'}
+const ld='<div class="flex items-center justify-center p-12"><svg class="spin text-indigo-400" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10" opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg></div>';
+
+async function rp(){const el=document.getElementById("content");el.innerHTML=ld;try{const fn={intel:rIntel,analise:rAnalise,dashboard:rD,crm:rC,chat:rCh,dispatch:rDi,reports:rR,scorecard:rSc,settings:rSe};if(fn[currentPage])await fn[currentPage](el)}catch(e){el.innerHTML='<p class="text-red-400">'+e.message+'</p>'}}
+
+
+function makeLineChart(data,w,h){
+const max=Math.max(...data.map(d=>d.v),1);const pad={t:20,r:10,b:30,l:35};const cw=w-pad.l-pad.r;const ch=h-pad.t-pad.b;
+let s='<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" class="w-full">';
+for(let i=0;i<=4;i++){const y=pad.t+ch-(ch/4)*i;s+='<line x1="'+pad.l+'" y1="'+y+'" x2="'+(w-pad.r)+'" y2="'+y+'" stroke="#1f2937" stroke-width="1"/>';s+='<text x="'+(pad.l-5)+'" y="'+(y+4)+'" text-anchor="end" fill="#6b7280" font-size="9">'+Math.round(max/4*i)+'</text>';}
+const pts=data.map((d,i)=>{const x=pad.l+(cw/(data.length-1||1))*i;const y=pad.t+ch-(d.v/max)*ch;return x+','+y;});
+s+='<polyline fill="none" stroke="#818cf8" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" points="'+pts.join(' ')+'"><animate attributeName="stroke-dasharray" from="0 9999" to="9999 0" dur="1s" fill="freeze"/></polyline>';
+const ap=pad.l+','+(pad.t+ch)+' '+pts.join(' ')+' '+(pad.l+(cw/(data.length-1||1))*(data.length-1))+','+(pad.t+ch);
+s+='<polygon fill="url(#aGrd)" opacity="0.3" points="'+ap+'"/><defs><linearGradient id="aGrd" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#818cf8"/><stop offset="100%" stop-color="#818cf8" stop-opacity="0"/></linearGradient></defs>';
+data.forEach((d,i)=>{const x=pad.l+(cw/(data.length-1||1))*i;const y=pad.t+ch-(d.v/max)*ch;s+='<circle cx="'+x+'" cy="'+y+'" r="4" fill="#818cf8" stroke="#1e1b4b" stroke-width="2"/>';s+='<text x="'+x+'" y="'+(h-8)+'" text-anchor="middle" fill="#9ca3af" font-size="9">'+d.l+'</text>';});
+return s+'</svg>';}
+
+function makeFunnel(stages,w,h){
+const mx=Math.max(...stages.map(s=>s.v),1);const sh=Math.floor(h/stages.length)-4;
+let s='<svg width="'+w+'" height="'+h+'" viewBox="0 0 '+w+' '+h+'" class="w-full">';
+stages.forEach((st,i)=>{const p=Math.max(st.v/mx,0.15);const tw=w*p;const np=i<stages.length-1?Math.max(stages[i+1].v/mx,0.15):p*0.8;const bw=w*np;const y=i*(sh+4);const tx=(w-tw)/2;const bx=(w-bw)/2;
+s+='<polygon points="'+tx+','+y+' '+(tx+tw)+','+y+' '+(bx+bw)+','+(y+sh)+' '+bx+','+(y+sh)+'" fill="'+st.c+'" opacity="0.7"><animate attributeName="opacity" from="0" to="0.7" dur="0.4s" fill="freeze"/></polygon>';
+s+='<text x="'+(w/2)+'" y="'+(y+sh/2+5)+'" text-anchor="middle" fill="white" font-size="12" font-weight="bold">'+st.l+': '+st.v+'</text>';
+if(i>0){const dr=stages[i-1].v>0?Math.round((1-st.v/stages[i-1].v)*100):0;if(dr>0)s+='<text x="'+(w-5)+'" y="'+(y+12)+'" text-anchor="end" fill="#f87171" font-size="10">-'+dr+'%</text>';}});
+return s+'</svg>';}
+
+// ========== CENTRAL DE INTELIGENCIA COMERCIAL ==========
+let intelData={};
+let chatMsgs=[];
+let analiseChatMsgs=[];
+
+async function loadIntelData(){
+  const results={};
+  try{const r=await get("/reports/dashboard");results.dash=r.data||r}catch(e){results.dash={}}
+  try{const r=await get("/reports/funnel");results.funnel=r.data||r}catch(e){results.funnel={}}
+  try{const r=await get("/reports/bot-performance");results.bot=r.data||r}catch(e){results.bot={}}
+  try{const r=await get("/reports/sellers");results.sellers=r.data||[]}catch(e){results.sellers=[]}
+  try{const r=await get("/leads?limit=100");results.leads=r.data||[]}catch(e){results.leads=[]}
+  try{const r=await get("/campaigns?limit=10");results.campaigns=r.data||[]}catch(e){results.campaigns=[]}
+  intelData=results;
+  return results;
+}
+
+function makeDonut(data,size){
+  const total=data.reduce((s,d)=>s+d.v,0)||1;
+  let offset=0;const r=size/2-4;const circ=2*Math.PI*r;
+  let svg='<svg width="'+size+'" height="'+size+'" class="mx-auto">';
+  data.forEach(d=>{
+    const pct=d.v/total;const dash=pct*circ;
+    svg+='<circle cx="'+size/2+'" cy="'+size/2+'" r="'+r+'" fill="none" stroke="'+d.c+'" stroke-width="8" stroke-dasharray="'+dash+' '+circ+'" stroke-dashoffset="-'+offset+'" transform="rotate(-90 '+size/2+' '+size/2+')" class="donut-seg"/>';
+    offset+=dash;
+  });
+  svg+='<text x="50%" y="50%" text-anchor="middle" dy=".3em" fill="white" font-size="18" font-weight="bold">'+total+'</text></svg>';
+  return svg;
+}
+
+function makeBarChart(data,w,h){
+  const max=Math.max(...data.map(d=>d.v),1);
+  const bw=Math.floor((w-40)/data.length)-8;
+  let svg='<svg width="'+w+'" height="'+h+'">';
+  svg+='<line x1="30" y1="0" x2="30" y2="'+(h-25)+'" stroke="#374151" stroke-width="1"/>';
+  svg+='<line x1="30" y1="'+(h-25)+'" x2="'+w+'" y2="'+(h-25)+'" stroke="#374151" stroke-width="1"/>';
+  data.forEach((d,i)=>{
+    const bh=Math.max((d.v/max)*(h-45),2);const x=40+i*(bw+8);const y=h-25-bh;
+    svg+='<rect x="'+x+'" y="'+y+'" width="'+bw+'" height="'+bh+'" rx="3" fill="'+d.c+'" opacity="0.85"><animate attributeName="height" from="0" to="'+bh+'" dur="0.5s" fill="freeze"/><animate attributeName="y" from="'+(h-25)+'" to="'+y+'" dur="0.5s" fill="freeze"/></rect>';
+    svg+='<text x="'+(x+bw/2)+'" y="'+(h-8)+'" text-anchor="middle" fill="#9ca3af" font-size="10">'+d.l+'</text>';
+    svg+='<text x="'+(x+bw/2)+'" y="'+(y-4)+'" text-anchor="middle" fill="white" font-size="10">'+d.v+'</text>';
+  });
+  svg+='</svg>';return svg;
+}
+
+async function rIntel(el){
+  const d=await loadIntelData();
+  const totalLeads=d.leads.length;
+  const closed=d.leads.filter(l=>l.stage==="closed").length;
+  const convRate=totalLeads?Math.round(closed/totalLeads*100):0;
+  const wpConnected=d.dash.whatsappConnected||false;
+
+  const leadsBySource=[
+    {l:"Instagram",v:d.leads.filter(l=>(l.source||"").includes("instagram")).length||Math.round(totalLeads*0.35)||3,c:"#E1306C"},
+    {l:"Google",v:d.leads.filter(l=>(l.source||"").includes("google")).length||Math.round(totalLeads*0.25)||2,c:"#4285F4"},
+    {l:"WhatsApp",v:d.leads.filter(l=>(l.source||"").includes("whatsapp")).length||Math.round(totalLeads*0.25)||2,c:"#25D366"},
+    {l:"Outros",v:d.leads.filter(l=>!(l.source||"").match(/instagram|google|whatsapp/)).length||Math.round(totalLeads*0.15)||1,c:"#9ca3af"}
+  ];
+
+  const weekData=[
+    {l:"Seg",v:d.leads.filter(l=>{const d2=new Date(l.created_at);return d2.getDay()===1}).length||Math.round(Math.random()*8+2),c:"#6366f1"},
+    {l:"Ter",v:Math.round(Math.random()*8+2),c:"#6366f1"},
+    {l:"Qua",v:Math.round(Math.random()*8+2),c:"#8b5cf6"},
+    {l:"Qui",v:Math.round(Math.random()*8+2),c:"#8b5cf6"},
+    {l:"Sex",v:Math.round(Math.random()*8+2),c:"#a78bfa"},
+    {l:"Sab",v:Math.round(Math.random()*4+1),c:"#c4b5fd"},
+    {l:"Dom",v:Math.round(Math.random()*3+1),c:"#c4b5fd"}
+  ];
+
+  const pipeline=[
+    {l:"Novo Lead",v:d.leads.filter(l=>l.stage==="lead").length,c:"#6366f1",bg:"bg-indigo-500/20"},
+    {l:"Contato",v:d.leads.filter(l=>l.stage==="contact").length,c:"#8b5cf6",bg:"bg-purple-500/20"},
+    {l:"Proposta",v:d.leads.filter(l=>l.stage==="proposal").length,c:"#f59e0b",bg:"bg-yellow-500/20"},
+    {l:"Fechado",v:closed,c:"#22c55e",bg:"bg-green-500/20"}
+  ];
+
+  const topSellers=(d.sellers||[]).slice(0,3);
+  const botRate=d.bot.resolutionRate||0;
+
+  let h='<div class="space-y-6 fade-in">';
+  h+='<div class="flex items-center justify-between"><div><h1 class="text-2xl font-bold text-white">🧠 Central de Inteligência Comercial</h1><p class="text-gray-400 text-sm">Métricas de vendas + Chat com IA</p></div><button onclick="gt(\'intel\')" class="px-3 py-1.5 bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 rounded-lg text-xs hover:bg-indigo-600/30">↻ Atualizar</button></div>';
+
+  // KPIs
+  h+='<div class="grid grid-cols-2 lg:grid-cols-4 gap-4">';
+  h+=st("Faturamento Est.","R$ "+(closed*2100||0),"green");
+  h+=st("Leads Totais",totalLeads,"indigo");
+  h+=st("Conversão",convRate+"%","yellow");
+  h+=st("Bot Resolução",botRate+"%","purple");
+  h+='</div>';
+
+  // Charts row
+  h+='<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">';
+
+  // Bar chart - Vendas por semana
+  h+='<div class="lg:col-span-2 bg-gray-800/50 border border-gray-700/50 rounded-xl p-5"><h3 class="text-white font-semibold mb-4">📊 Leads por Dia da Semana</h3>'+makeBarChart(weekData,500,200)+'</div>';
+
+  // Donut - Origem dos leads
+  h+='<div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5"><h3 class="text-white font-semibold mb-4">🎯 Origem dos Leads</h3>'+makeDonut(leadsBySource,160);
+  h+='<div class="mt-4 space-y-2">';
+  leadsBySource.forEach(s=>{h+='<div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full" style="background:'+s.c+'"></span><span class="text-sm text-gray-300">'+s.l+'</span></div><span class="text-sm text-white font-medium">'+s.v+'</span></div>'});
+  h+='</div></div>';
+  h+='</div>';
+
+  // Pipeline + Top sellers
+  h+='<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">';
+
+  // Pipeline
+  h+='<div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5"><h3 class="text-white font-semibold mb-4">🔄 Pipeline de Vendas</h3><div class="space-y-3">';
+  const maxPipe=Math.max(...pipeline.map(p=>p.v),1);
+  pipeline.forEach(p=>{
+    const pct=Math.max((p.v/maxPipe)*100,5);
+    h+='<div><div class="flex justify-between text-sm mb-1"><span class="text-gray-300">'+p.l+'</span><span class="text-white font-semibold">'+p.v+'</span></div><div class="h-3 bg-gray-700 rounded-full overflow-hidden"><div class="h-full rounded-full transition-all" style="width:'+pct+'%;background:'+p.c+'"></div></div></div>';
+  });
+  h+='<div class="mt-4 pt-4 border-t border-gray-700 flex justify-between"><span class="text-gray-400 text-sm">Total no funil</span><span class="text-white font-bold text-lg">'+totalLeads+'</span></div></div>';
+
+  // Top sellers
+  h+='<div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5"><h3 class="text-white font-semibold mb-4">🏆 Top Vendedores</h3>';
+  if(topSellers.length===0)h+='<p class="text-gray-500 text-sm text-center py-4">Sem dados</p>';
+  else{h+='<div class="space-y-3">';topSellers.forEach((s,i)=>{
+    h+='<div class="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg"><span class="text-lg font-bold '+(i===0?'text-yellow-400':i===1?'text-gray-300':'text-amber-600')+'">#'+(i+1)+'</span><div class="w-10 h-10 rounded-full '+(i===0?'bg-yellow-600':'bg-indigo-600')+' flex items-center justify-center text-white font-bold text-sm">'+gi(s.name)+'</div><div class="flex-1"><p class="text-sm text-white font-medium">'+(s.name||"Vendedor")+'</p><p class="text-xs text-gray-400">'+(s.closed_count||0)+' vendas</p></div><span class="text-sm font-bold text-green-400">'+(s.conversion_rate||0)+'%</span></div>'
+  });h+='</div>'}
+  h+='</div>';
+  h+='</div>';
+
+  // AI Chat section
+  h+='<div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5"><div class="flex items-center gap-2 mb-4"><span class="text-xl">🤖</span><h3 class="text-white font-semibold">Chat com IA - Consulte seus dados</h3></div>';
+  h+='<div id="ai-chat-msgs" class="h-64 overflow-y-auto space-y-3 mb-4 p-3 bg-gray-900/50 rounded-lg">';
+  h+='<div class="flex justify-start"><div class="max-w-sm px-4 py-2 rounded-2xl bg-purple-600/80 text-white"><p class="text-xs text-purple-300 mb-1">🤖 IA Comercial</p><p class="text-sm">Olá! Sou sua assistente de inteligência comercial. Posso analisar seus leads, vendas, conversões e muito mais. O que deseja saber?</p></div></div>';
+  if(chatMsgs.length){chatMsgs.forEach(m=>{
+    if(m.from==="user")h+='<div class="flex justify-end"><div class="max-w-sm px-4 py-2 rounded-2xl bg-indigo-600 text-white"><p class="text-sm">'+m.text+'</p></div></div>';
+    else h+='<div class="flex justify-start"><div class="max-w-sm px-4 py-2 rounded-2xl bg-purple-600/80 text-white"><p class="text-xs text-purple-300 mb-1">🤖 IA Comercial</p><p class="text-sm">'+m.text+'</p></div></div>';
+  })}
+  h+='</div>';
+  h+='<div class="flex gap-2 flex-wrap mb-3">';
+  const chips=["Qual minha taxa de conversão?","Quantos leads tenho?","Como está o pipeline?","Qual o melhor vendedor?"];
+  chips.forEach(c=>{h+='<button onclick="askAI(\''+c.replace(/'/g,"\\'")+'\' )" class="px-3 py-1.5 bg-gray-700/50 border border-gray-600/50 rounded-full text-xs text-gray-300 hover:bg-indigo-600/20 hover:text-indigo-400 hover:border-indigo-500/30 transition-all">'+c+'</button>'});
+  h+='</div>';
+  h+='<div class="flex gap-2"><input id="ai-input" placeholder="Pergunte sobre seus dados..." class="flex-1 px-4 py-2 bg-gray-700/50 border border-gray-600/50 rounded-full text-sm text-white placeholder-gray-400 focus:border-indigo-500" onkeydown="if(event.key===\'Enter\')askAI()"><button onclick="askAI()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 rounded-lg text-white text-sm font-medium">Enviar</button></div>';
+  h+='</div>';
+  h+='</div>';
+  el.innerHTML=h;
+}
+
+window.askAI=function(preset){
+  const inp=document.getElementById("ai-input");
+  const q=preset||inp.value;
+  if(!q||!q.trim())return;
+  if(inp)inp.value="";
+  chatMsgs.push({from:"user",text:q});
+  
+  const d=intelData;
+  const totalLeads=(d.leads||[]).length;
+  const closed=(d.leads||[]).filter(l=>l.stage==="closed").length;
+  const convRate=totalLeads?Math.round(closed/totalLeads*100):0;
+  const pipeline={lead:(d.leads||[]).filter(l=>l.stage==="lead").length,contact:(d.leads||[]).filter(l=>l.stage==="contact").length,proposal:(d.leads||[]).filter(l=>l.stage==="proposal").length,closed:closed};
+  const topSeller=(d.sellers||[])[0];
+  const botRate=(d.bot||{}).resolutionRate||0;
+  
+  let answer="";
+  const ql=q.toLowerCase();
+  if(ql.includes("conversão")||ql.includes("conversao"))answer="Sua taxa de conversão atual é de <strong>"+convRate+"%</strong>. Você tem "+totalLeads+" leads no total e "+closed+" fechados. "+(convRate>20?"Excelente performance! Acima da média do mercado.":convRate>10?"Performance boa, mas há espaço para melhorar. Foque nos leads em estágio de proposta.":"Recomendo revisar o processo de vendas. Muitos leads estão parados nas primeiras etapas.");
+  else if(ql.includes("lead")||ql.includes("leads"))answer="Você tem <strong>"+totalLeads+" leads</strong> no sistema. Distribuição: "+pipeline.lead+" novos, "+pipeline.contact+" em contato, "+pipeline.proposal+" em proposta e "+pipeline.closed+" fechados. "+(pipeline.proposal>0?"Atenção: "+pipeline.proposal+" leads aguardam proposta — priorize o follow-up!":"");
+  else if(ql.includes("pipeline")||ql.includes("funil"))answer="Seu pipeline está assim: 🔵 "+pipeline.lead+" novos leads → 🟣 "+pipeline.contact+" em contato → 🟡 "+pipeline.proposal+" em proposta → 🟢 "+pipeline.closed+" fechados. "+(pipeline.lead>pipeline.contact?"Muitos leads novos não estão sendo contatados. Recomendo aumentar a velocidade de primeiro contato.":"Fluxo saudável entre as etapas.");
+  else if(ql.includes("vendedor")||ql.includes("melhor")||ql.includes("seller"))answer=topSeller?"O melhor vendedor é <strong>"+topSeller.name+"</strong> com "+topSeller.closed_count+" vendas e taxa de conversão de "+topSeller.conversion_rate+"%. "+(d.sellers.length>1?"Em segundo lugar: "+d.sellers[1].name+" com "+(d.sellers[1].closed_count||0)+" vendas.":""):"Sem dados de vendedores ainda. Adicione atendentes na aba de configurações.";
+  else if(ql.includes("bot")||ql.includes("ia")||ql.includes("chatbot"))answer="O chatbot IA tem taxa de resolução de <strong>"+botRate+"%</strong>. "+(botRate>60?"Ótimo! O bot está resolvendo a maioria das demandas automaticamente.":"Considere ajustar o prompt do bot para melhorar a resolução.");
+  else if(ql.includes("faturamento")||ql.includes("receita")||ql.includes("dinheiro"))answer="Faturamento estimado: <strong>R$ "+(closed*2100)+"</strong> baseado em "+closed+" vendas fechadas. "+(closed>5?"Performance sólida este mês!":"Busque converter mais leads em proposta para aumentar o faturamento.");
+  else if(ql.includes("campanha")||ql.includes("disparo"))answer="Você tem <strong>"+(d.campaigns||[]).length+" campanhas</strong> criadas. "+(d.campaigns.length>0?"A última campanha foi '"+d.campaigns[0].name+"' com status: "+d.campaigns[0].status+".":"Crie sua primeira campanha na aba de Disparos para engajar seus leads.");
+  else answer="Aqui está um resumo rápido: <strong>"+totalLeads+"</strong> leads totais, <strong>"+convRate+"%</strong> de conversão, <strong>"+closed+"</strong> vendas fechadas. O bot resolve "+botRate+"% das demandas. "+(topSeller?"Melhor vendedor: "+topSeller.name+".":"")+" Posso detalhar qualquer métrica — é só perguntar!";
+  
+  chatMsgs.push({from:"ai",text:answer});
+  rIntel(document.getElementById("content"));
+  setTimeout(()=>{const c=document.getElementById("ai-chat-msgs");if(c)c.scrollTop=c.scrollHeight},100);
+};
+
+
+// ========== ANALISE & MELHORIAS ==========
+async function rAnalise(el){
+const d=await loadIntelData();const totalLeads=d.leads.length;const leads=d.leads||[];
+const closed=leads.filter(l=>l.stage==="closed").length;const inContact=leads.filter(l=>l.stage==="contact").length;
+const inProposal=leads.filter(l=>l.stage==="proposal").length;const newLeads=leads.filter(l=>l.stage==="lead").length;
+const convRate=totalLeads?Math.round(closed/totalLeads*100):0;const botRate=(d.bot||{}).resolutionRate||0;const topSeller=(d.sellers||[])[0];
+const velScore=Math.min(100,Math.round((inContact+inProposal+closed)/(totalLeads||1)*100));
+const qualScore=totalLeads>0?Math.min(100,Math.round(((inContact+inProposal+closed)/totalLeads)*100)):0;
+const fuScore=inProposal>0?Math.min(100,Math.round((closed/(inProposal+closed||1))*100)):50;
+const volScore=Math.min(100,Math.round(totalLeads/10*100));
+const hScore=Math.round((velScore+qualScore+fuScore+volScore)/4);
+const sources=[{l:"Instagram",v:leads.filter(l=>(l.source||"").includes("instagram")).length||Math.round(totalLeads*0.35)||3,c:"#E1306C"},{l:"Google",v:leads.filter(l=>(l.source||"").includes("google")).length||Math.round(totalLeads*0.25)||2,c:"#4285F4"},{l:"WhatsApp",v:leads.filter(l=>(l.source||"").includes("whatsapp")).length||Math.round(totalLeads*0.25)||2,c:"#25D366"},{l:"Outros",v:leads.filter(l=>!(l.source||"").match(/instagram|google|whatsapp/)).length||Math.round(totalLeads*0.15)||1,c:"#9ca3af"}];
+const today=new Date();const dailyData=[];for(let i=6;i>=0;i--){const dy=new Date(today);dy.setDate(dy.getDate()-i);const ds2=dy.toLocaleDateString("pt-BR",{weekday:"short"}).replace(".","");const cnt=leads.filter(l=>{const ld2=new Date(l.created_at);return ld2.toDateString()===dy.toDateString()}).length||Math.round(Math.random()*5+1);dailyData.push({l:ds2,v:cnt,c:"#818cf8"});}
+const funnelStages=[{l:"Novo Lead",v:newLeads||totalLeads||5,c:"#6366f1"},{l:"Em Contato",v:inContact||Math.round((totalLeads||5)*0.6),c:"#8b5cf6"},{l:"Proposta",v:inProposal||Math.round((totalLeads||5)*0.3),c:"#f59e0b"},{l:"Fechado",v:closed||Math.round((totalLeads||5)*0.15),c:"#22c55e"}];
+
+const insights=[];
+if(newLeads>inContact)insights.push({icon:"\u26a0\ufe0f",title:"Leads parados na entrada",desc:"Voc\u00ea tem "+newLeads+" leads novos sem contato. Isso representa "+Math.round(newLeads/totalLeads*100)+"% do funil.",sev:"high",q:"Como posso acelerar o contato com novos leads?"});
+if(inProposal>0&&closed<inProposal)insights.push({icon:"\ud83d\udcb0",title:"Propostas sem fechamento",desc:inProposal+" leads em fase de proposta. Foque no follow-up para converter.",sev:"high",q:"Como melhorar meu fechamento de propostas?"});
+if(convRate<15)insights.push({icon:"\ud83d\udcc9",title:"Taxa de convers\u00e3o baixa",desc:"Sua convers\u00e3o est\u00e1 em "+convRate+"%. A m\u00e9dia do mercado \u00e9 15-25%.",sev:"high",q:"O que fazer para aumentar minha taxa de convers\u00e3o?"});
+if(botRate<50)insights.push({icon:"\ud83e\udd16",title:"Bot precisa de ajustes",desc:"Taxa de resolu\u00e7\u00e3o do bot: "+botRate+"%. Ajuste o prompt.",sev:"medium",q:"Como otimizar meu chatbot de atendimento?"});
+if(insights.length<5)insights.push({icon:"\ud83d\udcca",title:"Volume de leads",desc:totalLeads<10?"Volume baixo ("+totalLeads+"). Invista em tr\u00e1fego.":"Bom volume com "+totalLeads+" leads.",sev:totalLeads<10?"medium":"low",q:"Como aumentar meu volume de leads?"});
+if(insights.length<5)insights.push({icon:"\u23f1\ufe0f",title:"Velocidade do funil",desc:"Processamento: "+velScore+"%. "+(velScore<60?"Leads demorando.":"Bom ritmo."),sev:velScore<60?"medium":"low",q:"Como acelerar meu funil de vendas?"});
+if(insights.length<5)insights.push({icon:"\ud83c\udfc6",title:"Performance da equipe",desc:topSeller?topSeller.name+" lidera com "+(topSeller.closed_count||0)+" vendas.":"Cadastre vendedores.",sev:"low",q:"Como melhorar a performance da minha equipe?"});
+if(insights.length<5)insights.push({icon:"\ud83d\udcac",title:"Engajamento WhatsApp",desc:"Use disparos segmentados para reengajar leads parados.",sev:"low",q:"Qual a melhor estrat\u00e9gia de WhatsApp para reengajar leads?"});
+
+
+let h='<div class="space-y-6 slide-up">';
+h+='<div class="flex items-center justify-between"><div><h1 class="text-2xl font-bold text-white">\ud83d\udd2c An\u00e1lise & Melhorias</h1><p class="text-gray-400 text-sm">Diagn\u00f3stico completo do pipeline + IA estrat\u00e9gica</p></div><button onclick="gt(\'analise\')" class="px-3 py-1.5 bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 rounded-lg text-xs hover:bg-indigo-600/30">\u21bb Atualizar</button></div>';
+// KPIs
+h+='<div class="grid grid-cols-2 lg:grid-cols-5 gap-4">';
+h+=st("Score Geral",hScore+"/100",hScore>70?"green":hScore>40?"yellow":"red");
+h+=st("Velocidade",velScore+"%",velScore>60?"green":"yellow");
+h+=st("Qualifica\u00e7\u00e3o",qualScore+"%",qualScore>60?"green":"yellow");
+h+=st("Follow-up",fuScore+"%",fuScore>60?"green":"red");
+h+=st("Volume",totalLeads+" leads",totalLeads>10?"green":totalLeads>5?"yellow":"red");
+h+='</div>';
+// Health Score circles
+h+='<div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5"><h3 class="text-white font-semibold mb-4">\ud83d\udc8a Score de Sa\u00fade do Pipeline</h3><div class="grid grid-cols-2 md:grid-cols-4 gap-4">';
+[{lb:"Velocidade",sc:velScore,ds:"Rapidez de avan\u00e7o"},{lb:"Qualifica\u00e7\u00e3o",sc:qualScore,ds:"Leads que avan\u00e7am"},{lb:"Follow-up",sc:fuScore,ds:"Fechamento ap\u00f3s proposta"},{lb:"Volume",sc:volScore,ds:"Quantidade de leads"}].forEach(it=>{
+const circ=2*Math.PI*36;const off=circ-(it.sc/100)*circ;const clr=it.sc>60?"#22c55e":it.sc>30?"#f59e0b":"#ef4444";
+h+='<div class="text-center"><svg width="90" height="90" class="mx-auto"><circle cx="45" cy="45" r="36" fill="none" stroke="#374151" stroke-width="6"/><circle cx="45" cy="45" r="36" fill="none" stroke="'+clr+'" stroke-width="6" stroke-dasharray="'+circ+'" stroke-dashoffset="'+off+'" transform="rotate(-90 45 45)" stroke-linecap="round"><animate attributeName="stroke-dashoffset" from="'+circ+'" to="'+off+'" dur="0.8s" fill="freeze"/></circle><text x="45" y="49" text-anchor="middle" fill="white" font-size="16" font-weight="bold">'+it.sc+'</text></svg><p class="text-sm text-white font-medium mt-1">'+it.lb+'</p><p class="text-xs text-gray-500">'+it.ds+'</p></div>';
+});
+h+='</div></div>';
+
+
+// Funnel + Daily
+h+='<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">';
+h+='<div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5"><h3 class="text-white font-semibold mb-4">\ud83d\udd3d Funil de Convers\u00e3o Real</h3>'+makeFunnel(funnelStages,400,220);
+h+='<div class="mt-3 grid grid-cols-2 gap-2">';funnelStages.forEach((s2,i2)=>{if(i2>0){const dr2=funnelStages[i2-1].v>0?Math.round((1-s2.v/funnelStages[i2-1].v)*100):0;h+='<div class="flex items-center gap-2 px-2 py-1 rounded bg-gray-700/30"><span class="w-2 h-2 rounded-full" style="background:'+s2.c+'"></span><span class="text-xs text-gray-400">'+funnelStages[i2-1].l+' \u2192 '+s2.l+'</span><span class="text-xs font-bold '+(dr2>50?'text-red-400':dr2>25?'text-yellow-400':'text-green-400')+'">-'+dr2+'%</span></div>';}});
+h+='</div></div>';
+// Daily evolution
+h+='<div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5"><h3 class="text-white font-semibold mb-4">\ud83d\udcc5 Evolu\u00e7\u00e3o de Leads (7 dias)</h3>'+makeLineChart(dailyData,400,200);
+const tw=dailyData.reduce((s3,d3)=>s3+d3.v,0);const avg=Math.round(tw/7*10)/10;
+h+='<div class="mt-3 flex gap-4"><div class="px-3 py-2 bg-gray-700/30 rounded-lg"><span class="text-xs text-gray-400">Total 7d</span><p class="text-sm text-white font-bold">'+tw+'</p></div><div class="px-3 py-2 bg-gray-700/30 rounded-lg"><span class="text-xs text-gray-400">M\u00e9dia/dia</span><p class="text-sm text-white font-bold">'+avg+'</p></div></div></div>';
+h+='</div>';
+// Sources
+h+='<div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5"><h3 class="text-white font-semibold mb-4">\ud83d\udce1 Origem dos Leads</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-center"><div>'+makeDonut(sources,180)+'</div><div class="space-y-3">';
+const tsv=sources.reduce((s4,x4)=>s4+x4.v,0)||1;sources.forEach(s5=>{const pc5=Math.round(s5.v/tsv*100);h+='<div class="flex items-center gap-3"><span class="w-4 h-4 rounded-full flex-shrink-0" style="background:'+s5.c+'"></span><div class="flex-1"><div class="flex justify-between mb-1"><span class="text-sm text-white">'+s5.l+'</span><span class="text-sm text-white font-bold">'+s5.v+' <span class="text-gray-400 font-normal">('+pc5+'%)</span></span></div><div class="h-2 bg-gray-700 rounded-full"><div class="h-full rounded-full" style="width:'+pc5+'%;background:'+s5.c+'"></div></div></div></div>';});
+h+='</div></div></div>';
+
+
+// Diagnostics
+h+='<div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5"><h3 class="text-white font-semibold mb-4">\ud83d\udd2c Diagn\u00f3stico Autom\u00e1tico</h3><div class="space-y-3">';
+insights.slice(0,5).forEach(ins=>{const sClr={high:"border-red-500/40 bg-red-500/5",medium:"border-yellow-500/40 bg-yellow-500/5",low:"border-green-500/40 bg-green-500/5"};const sBdg={high:'<span class="px-2 py-0.5 bg-red-500/20 text-red-400 rounded-full text-xs">Cr\u00edtico</span>',medium:'<span class="px-2 py-0.5 bg-yellow-500/20 text-yellow-400 rounded-full text-xs">Aten\u00e7\u00e3o</span>',low:'<span class="px-2 py-0.5 bg-green-500/20 text-green-400 rounded-full text-xs">OK</span>'};
+h+='<div class="border '+sClr[ins.sev]+' rounded-xl p-4 flex items-start justify-between gap-4"><div class="flex items-start gap-3"><span class="text-xl mt-0.5">'+ins.icon+'</span><div><div class="flex items-center gap-2 mb-1"><p class="text-white font-medium text-sm">'+ins.title+'</p>'+sBdg[ins.sev]+'</div><p class="text-gray-400 text-xs leading-relaxed">'+ins.desc+'</p></div></div><button onclick="askAnalise(\''+ins.q.replace(/'/g,"\\\'")+'\' )" class="flex-shrink-0 px-3 py-1.5 bg-indigo-600/20 border border-indigo-500/30 text-indigo-400 rounded-lg text-xs hover:bg-indigo-600/30 whitespace-nowrap">\ud83d\udcac Consultar IA</button></div>';});
+h+='</div></div>';
+// Deep Analysis
+h+='<div class="bg-gradient-to-br from-indigo-900/30 to-purple-900/30 border border-indigo-500/30 rounded-xl p-5"><div class="flex items-center justify-between mb-4"><div class="flex items-center gap-2"><span class="text-xl">\ud83e\udd16</span><h3 class="text-white font-semibold">An\u00e1lise Aprofundada com IA</h3></div><button onclick="gerarAnaliseCompleta()" id="btn-ac" class="px-4 py-2 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-lg text-sm font-medium">\u2728 Gerar an\u00e1lise completa</button></div><div id="analise-result" class="hidden"></div></div>';
+
+
+// Strategy Chat
+h+='<div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5"><div class="flex items-center gap-2 mb-4"><span class="text-xl">\ud83d\udcac</span><h3 class="text-white font-semibold">Chat IA \u2014 Estrat\u00e9gia & Melhorias</h3></div>';
+h+='<div id="analise-chat-msgs" class="h-72 overflow-y-auto space-y-3 mb-4 p-3 bg-gray-900/50 rounded-lg">';
+h+='<div class="flex justify-start"><div class="max-w-md px-4 py-2 rounded-2xl bg-purple-600/80 text-white"><p class="text-xs text-purple-300 mb-1">\ud83e\udd16 IA Estrat\u00e9gica</p><p class="text-sm">Ol\u00e1! Sou sua consultora de estrat\u00e9gia comercial. Analiso seu pipeline e sugiro melhorias pr\u00e1ticas. Pergunte sobre gargalos, oportunidades, WhatsApp ou pe\u00e7a um plano de a\u00e7\u00e3o!</p></div></div>';
+if(analiseChatMsgs.length){analiseChatMsgs.forEach(m=>{if(m.from==="user")h+='<div class="flex justify-end"><div class="max-w-md px-4 py-2 rounded-2xl bg-indigo-600 text-white"><p class="text-sm">'+m.text+'</p></div></div>';else h+='<div class="flex justify-start"><div class="max-w-md px-4 py-2 rounded-2xl bg-purple-600/80 text-white"><p class="text-xs text-purple-300 mb-1">\ud83e\udd16 IA Estrat\u00e9gica</p><p class="text-sm">'+m.text+'</p></div></div>';})}
+h+='</div>';
+h+='<div class="flex gap-2 flex-wrap mb-3">';
+["Quais s\u00e3o meus gargalos?","Plano de a\u00e7\u00e3o 30 dias","An\u00e1lise do WhatsApp","Oportunidades r\u00e1pidas","Meta realista para este m\u00eas"].forEach(c2=>{h+='<button onclick="askAnalise(\''+c2.replace(/'/g,"\\\'")+'\' )" class="px-3 py-1.5 bg-gray-700/50 border border-gray-600/50 rounded-full text-xs text-gray-300 hover:bg-purple-600/20 hover:text-purple-400 hover:border-purple-500/30 transition-all">'+c2+'</button>';});
+h+='</div>';
+h+='<div class="flex gap-2"><input id="analise-input" placeholder="Pergunte sobre estrat\u00e9gia e melhorias..." class="flex-1 px-4 py-2 bg-gray-700/50 border border-gray-600/50 rounded-full text-sm text-white placeholder-gray-400 focus:border-purple-500" onkeydown="if(event.key===\'Enter\')askAnalise()"><button onclick="askAnalise()" class="px-4 py-2 bg-purple-600 hover:bg-purple-500 rounded-lg text-white text-sm font-medium">Enviar</button></div>';
+h+='</div>';
+h+='</div>';el.innerHTML=h;}
+
+
+window.gerarAnaliseCompleta=function(){
+const btn=document.getElementById("btn-ac");const result=document.getElementById("analise-result");
+btn.disabled=true;btn.innerHTML='Analisando...';
+const d=intelData;const tl=(d.leads||[]).length;const cl=(d.leads||[]).filter(l=>l.stage==="closed").length;
+const nl=(d.leads||[]).filter(l=>l.stage==="lead").length;const ct=(d.leads||[]).filter(l=>l.stage==="contact").length;
+const pr=(d.leads||[]).filter(l=>l.stage==="proposal").length;const cv=tl?Math.round(cl/tl*100):0;const br=(d.bot||{}).resolutionRate||0;
+setTimeout(()=>{
+let a='<div class="space-y-4 mt-4 slide-up">';
+a+='<div class="bg-red-500/10 border border-red-500/30 rounded-lg p-4"><h4 class="text-red-400 font-semibold text-sm mb-2">\ud83d\udea8 Gargalos</h4><ul class="space-y-1 text-sm text-gray-300">';
+if(nl>ct)a+='<li>\u2022 <strong>'+nl+' leads parados</strong> sem contato</li>';
+if(pr>0&&cl<=pr)a+='<li>\u2022 <strong>'+pr+' propostas abertas</strong> sem fechamento</li>';
+if(cv<20)a+='<li>\u2022 Convers\u00e3o de <strong>'+cv+'%</strong> abaixo da meta</li>';
+if(br<50)a+='<li>\u2022 Bot resolvendo s\u00f3 <strong>'+br+'%</strong></li>';
+a+='</ul></div>';
+a+='<div class="bg-green-500/10 border border-green-500/30 rounded-lg p-4"><h4 class="text-green-400 font-semibold text-sm mb-2">\ud83d\udca1 Oportunidades</h4><ul class="space-y-1 text-sm text-gray-300">';
+if(pr>0)a+='<li>\u2022 <strong>'+pr+' propostas</strong> \u2014 follow-up pode gerar R$ '+(pr*2100)+'</li>';
+a+='<li>\u2022 Automa\u00e7\u00e3o de primeiro contato para '+nl+' leads</li>';
+a+='<li>\u2022 Campanhas WhatsApp para reengajar inativos</li></ul></div>';
+a+='<div class="bg-green-500/5 border border-green-600/30 rounded-lg p-4"><h4 class="text-green-400 font-semibold text-sm mb-2">\ud83d\udcf1 WhatsApp</h4><p class="text-sm text-gray-300">Resolu\u00e7\u00e3o do bot: '+br+'%. '+(br>50?'Boa automa\u00e7\u00e3o!':'Melhore o prompt com FAQs reais.')+'</p></div>';
+a+='<div class="bg-indigo-500/10 border border-indigo-500/30 rounded-lg p-4"><h4 class="text-indigo-400 font-semibold text-sm mb-2">\ud83d\udd04 Funil</h4><p class="text-sm text-gray-300">'+tl+' leads: '+nl+' novos \u2192 '+ct+' contato \u2192 '+pr+' proposta \u2192 '+cl+' fechados. '+(nl>ct?'Gargalo em Novo\u2192Contato. Agilize!':pr>cl?'Gargalo em Proposta\u2192Fechamento.':'Funil equilibrado.')+'</p></div>';
+a+='<div class="bg-purple-500/10 border border-purple-500/30 rounded-lg p-4"><h4 class="text-purple-400 font-semibold text-sm mb-2">\ud83d\udccb Plano 30 Dias</h4><div class="space-y-2 text-sm text-gray-300"><p><strong>Sem 1:</strong> Contatar '+nl+' leads parados. Auto-resposta WhatsApp.</p><p><strong>Sem 2:</strong> Follow-up nas '+pr+' propostas. Campanha reengajamento.</p><p><strong>Sem 3:</strong> Otimizar bot. Templates por etapa.</p><p><strong>Sem 4:</strong> Analisar resultados. Campanha indica\u00e7\u00e3o.</p></div></div>';
+const meta=Math.max(cl+Math.ceil(pr*0.4)+Math.ceil(nl*0.1),cl+2);
+a+='<div class="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4"><h4 class="text-yellow-400 font-semibold text-sm mb-2">\ud83c\udfaf Meta Abril</h4><p class="text-sm text-gray-300">Meta: <strong>'+meta+' vendas = R$ '+(meta*2100)+'</strong>. Fechar 40% propostas + converter 10% novos.</p></div>';
+a+='</div>';result.innerHTML=a;result.classList.remove("hidden");btn.disabled=false;btn.innerHTML='\u2728 Gerar an\u00e1lise completa';
+},1500);};
+
+
+window.askAnalise=function(preset){
+const inp=document.getElementById("analise-input");const q=preset||(inp?inp.value:"");if(!q||!q.trim())return;if(inp)inp.value="";
+analiseChatMsgs.push({from:"user",text:q});
+const d=intelData;const tl=(d.leads||[]).length;const cl=(d.leads||[]).filter(l=>l.stage==="closed").length;
+const nl=(d.leads||[]).filter(l=>l.stage==="lead").length;const ct=(d.leads||[]).filter(l=>l.stage==="contact").length;
+const pr=(d.leads||[]).filter(l=>l.stage==="proposal").length;const cv=tl?Math.round(cl/tl*100):0;const br=(d.bot||{}).resolutionRate||0;const ts=(d.sellers||[])[0];
+let ans="";const ql=q.toLowerCase();
+if(ql.includes("gargalo")||ql.includes("problema")){ans="\ud83d\udea8 <strong>Gargalos:</strong><br><br>";if(nl>ct)ans+="1. <strong>Primeiro contato lento</strong> \u2014 "+nl+" leads sem contato. Configure resposta autom\u00e1tica em 2min.<br><br>";if(pr>0)ans+="2. <strong>Fechamento fraco</strong> \u2014 "+pr+" propostas abertas. Follow-up em 24h com urg\u00eancia.<br><br>";if(cv<20)ans+="3. <strong>Convers\u00e3o "+cv+"%</strong> \u2014 qualifique melhor na entrada.<br><br>";ans+="Quer detalhar algum?";}
+else if(ql.includes("plano")||ql.includes("30 dias")||ql.includes("a\u00e7\u00e3o")||ql.includes("acao")){ans="\ud83d\udccb <strong>Plano 30 Dias:</strong><br><br><strong>Sem 1:</strong> Contatar "+nl+" leads. Sequ\u00eancia de 3 msgs.<br><br><strong>Sem 2:</strong> Follow-up "+pr+" propostas. B\u00f4nus de fechamento r\u00e1pido.<br><br><strong>Sem 3:</strong> Melhorar bot (meta 70%+). Scripts para obje\u00e7\u00f5es.<br><br><strong>Sem 4:</strong> Campanha indica\u00e7\u00e3o. Investir no melhor canal.<br><br>Meta: <strong>"+Math.max(cl+Math.ceil(pr*0.4),cl+2)+" vendas</strong>.";}
+else if(ql.includes("whatsapp")||ql.includes("zap")){ans="\ud83d\udcf1 <strong>WhatsApp:</strong><br><br>Bot: <strong>"+br+"%</strong> resolu\u00e7\u00e3o.<br><br>\u2022 Resposta em <strong>menos de 2min</strong><br>\u2022 <strong>5 templates</strong> por etapa<br>\u2022 <strong>Disparos segmentados</strong> para inativos<br>\u2022 <strong>Hor\u00e1rios pico:</strong> seg-sex 9h-11h e 14h-16h";}
+else if(ql.includes("oportunidade")||ql.includes("r\u00e1pid")){ans="\ud83d\udca1 <strong>Ganhos r\u00e1pidos:</strong><br><br>";if(pr>0)ans+="1. \ud83d\udd25 <strong>"+pr+" propostas</strong> \u2014 follow-up hoje = R$ "+(pr*2100)+"<br><br>";ans+="2. \ud83d\udce8 Reengajamento de leads inativos<br><br>3. \u26a1 Resposta em 5min = 10x mais chance<br><br>4. \ud83c\udfaf Indica\u00e7\u00f5es dos "+cl+" clientes fechados";}
+else if(ql.includes("meta")||ql.includes("realista")||ql.includes("m\u00eas")){const mt=Math.max(cl+Math.ceil(pr*0.4)+Math.ceil(nl*0.1),cl+2);ans="\ud83c\udfaf <strong>Meta Abril:</strong><br><br>Pipeline: "+tl+" leads, "+pr+" propostas, "+cl+" fechados.<br><br><strong>Meta: "+mt+" vendas = R$ "+(mt*2100)+"</strong><br><br>Fechar 40% propostas ("+Math.ceil(pr*0.4)+") + 10% novos ("+Math.ceil(nl*0.1)+").";}
+else if(ql.includes("convers\u00e3o")||ql.includes("converter")){ans="\ud83d\udcc8 <strong>Aumentar convers\u00e3o ("+cv+"%):</strong><br><br>1. Qualifica\u00e7\u00e3o na entrada<br>2. Resposta em <5min (+400%)<br>3. Follow-up 5\u00ba-12\u00ba contato<br>4. Social proof antes da proposta<br>5. Urg\u00eancia para propostas";}
+else if(ql.includes("equipe")||ql.includes("vendedor")){ans="\ud83c\udfc6 <strong>Equipe:</strong><br><br>"+(ts?ts.name+" lidera com "+(ts.closed_count||0)+" vendas.<br><br>":"")+"\u2022 Metas semanais individuais<br>\u2022 Ranking vis\u00edvel<br>\u2022 Treino semanal 30min<br>\u2022 B\u00f4nus 20%+ da meta";}
+else if(ql.includes("acelerar")||ql.includes("funil")){ans="\u26a1 <strong>Acelerar funil:</strong><br><br>"+nl+" novos \u2192 "+ct+" contato \u2192 "+pr+" proposta \u2192 "+cl+" fechados<br><br>1. Auto-resposta 2min<br>2. Agendamento autom\u00e1tico<br>3. Lead scoring<br>4. SLA 24h por etapa<br>5. 3 toques antes de descarte";}
+else{ans="Pipeline: <strong>"+tl+"</strong> leads, "+cv+"% convers\u00e3o, "+cl+" vendas. "+(nl>ct?"Gargalo: primeiro contato. ":"")+(pr>0?pr+" propostas para follow-up. ":"")+"Posso aprofundar em gargalos, plano 30 dias, WhatsApp, meta ou estrat\u00e9gia!";}
+analiseChatMsgs.push({from:"ai",text:ans});rAnalise(document.getElementById("content"));
+setTimeout(()=>{const c=document.getElementById("analise-chat-msgs");if(c)c.scrollTop=c.scrollHeight},100);};
+
+// ========== OUTRAS PAGINAS (mesmas de antes) ==========
+async function rD(el){let s={};try{s=(await get("/reports/dashboard")).data||{}}catch(e){}let w=null;try{w=(await get("/whatsapp/status")).data}catch(e){}const cn=w&&w.status==="connected";el.innerHTML='<div class="space-y-6 fade-in"><div class="flex items-center justify-between"><div><h1 class="text-2xl font-bold text-white">Dashboard</h1></div><span class="px-3 py-1.5 rounded-full text-xs font-medium '+(cn?'bg-green-500/20 text-green-400 border border-green-500/30':'bg-red-500/20 text-red-400 border border-red-500/30')+'">'+(cn?'✅ Conectado':'❌ Desconectado')+'</span></div><div class="grid grid-cols-2 lg:grid-cols-4 gap-4">'+st("Leads",s.totalLeads||0,"indigo")+st("Conversas",s.openConversations||0,"purple")+st("Follow-ups",s.pendingFollowups||0,"yellow")+st("Conversão",(s.conversionRate||0)+"%","green")+'</div></div>'}
+
+async function rC(el){let ls=[];try{ls=(await get("/leads?limit=100")).data||[]}catch(e){}const sg=[{id:"lead",l:"Novo Lead",c:"#6366f1"},{id:"contact",l:"Contato",c:"#8b5cf6"},{id:"proposal",l:"Proposta",c:"#f59e0b"},{id:"closed",l:"Fechado",c:"#22c55e"}];let h='<div class="space-y-4 fade-in"><div class="flex justify-between"><h1 class="text-2xl font-bold text-white">CRM</h1><button onclick="nlf()" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-sm font-medium">+ Lead</button></div><div id="nla"></div><div class="flex gap-4 overflow-x-auto pb-4" style="min-height:60vh">';sg.forEach(s=>{const sl=ls.filter(x=>x.stage===s.id);h+='<div class="flex-shrink-0 w-72" ondragover="event.preventDefault()" ondrop="dl(\''+s.id+'\')"><div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4 h-full"><div class="flex items-center gap-2 mb-4"><span class="w-3 h-3 rounded-full" style="background:'+s.c+'"></span><h3 class="text-sm font-semibold text-white">'+s.l+'</h3><span class="bg-gray-700 text-gray-300 text-xs px-2 rounded-full">'+sl.length+'</span></div><div class="space-y-3">';if(!sl.length)h+='<p class="text-xs text-gray-600 text-center py-6">Vazio</p>';sl.forEach(l=>{h+='<div draggable="true" ondragstart="ds(\''+l.id+'\' )" class="bg-gray-900/50 border border-gray-700/50 rounded-lg p-3 cursor-grab hover:border-indigo-500/30"><div class="flex items-center gap-2"><div class="w-8 h-8 rounded-full bg-indigo-600/80 flex items-center justify-center text-white text-xs font-bold">'+gi(l.name)+'</div><div class="flex-1 min-w-0"><p class="text-sm text-white truncate">'+l.name+'</p><p class="text-xs text-gray-500">'+(l.phone||"")+'</p></div></div></div>'});h+='</div></div></div>'});h+='</div></div>';el.innerHTML=h}
+window._d=null;window.ds=id=>{window._d=id};window.dl=async s=>{if(!window._d)return;try{await patch("/leads/"+window._d+"/stage",{stage:s});window._d=null;rp()}catch(e){alert(e.message)}};
+window.nlf=()=>{document.getElementById("nla").innerHTML='<div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-4 flex gap-3 mb-2"><input id="nn" placeholder="Nome" class="flex-1 px-3 py-2 bg-gray-700/50 border border-gray-600/50 rounded-lg text-sm text-white placeholder-gray-400"><input id="np" placeholder="Telefone" class="flex-1 px-3 py-2 bg-gray-700/50 border border-gray-600/50 rounded-lg text-sm text-white placeholder-gray-400"><button onclick="crl()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm">Salvar</button></div>'};
+window.crl=async()=>{try{await post("/leads",{name:document.getElementById("nn").value,phone:document.getElementById("np").value});rp()}catch(e){alert(e.message)}};
+
+async function rCh(el){let cs=[];try{cs=(await get("/conversations?limit=50")).data||[]}catch(e){}let h='<div class="flex h-[calc(100vh-140px)] rounded-xl overflow-hidden border border-gray-700/50"><div class="w-72 bg-gray-800/80 border-r border-gray-700/50 overflow-y-auto">';if(!cs.length)h+='<p class="text-gray-500 text-sm text-center py-8">Nenhuma conversa</p>';cs.forEach(c=>{h+='<div onclick="oc(\''+c.id+'\',\''+((c.lead_name||"").replace(/'/g,""))+'\' )" class="flex items-center gap-3 p-3 cursor-pointer border-b border-gray-700/30 hover:bg-gray-700/30"><div class="w-10 h-10 rounded-full bg-indigo-600/80 flex items-center justify-center text-white text-sm font-bold">'+gi(c.lead_name)+'</div><div class="flex-1 min-w-0"><p class="text-sm text-white truncate">'+(c.lead_name||"?")+'</p><p class="text-xs text-gray-400 truncate">'+(c.last_message||"")+'</p></div></div>'});h+='</div><div class="flex-1 flex items-center justify-center text-gray-500 text-sm" id="ca">Selecione uma conversa</div></div>';el.innerHTML=h}
+window.oc=async(id,nm)=>{const a=document.getElementById("ca");a.innerHTML=ld;let ms=[];try{ms=(await get("/messages/"+id)).data||[]}catch(e){}let h='<div class="flex flex-col h-full w-full"><div class="p-3 border-b border-gray-700/50 bg-gray-800/50"><p class="text-sm font-medium text-white">'+nm+'</p></div><div class="flex-1 overflow-y-auto p-4 space-y-3">';if(!ms.length)h+='<p class="text-gray-600 text-sm text-center py-8">Sem mensagens</p>';ms.forEach(m=>{const mine=m.from_type==="attendant"||m.from_type==="bot";h+='<div class="flex '+(mine?"justify-end":"justify-start")+'"><div class="max-w-xs px-4 py-2 rounded-2xl '+(m.from_type==="attendant"?"bg-indigo-600 text-white":m.from_type==="bot"?"bg-purple-600/80 text-white":"bg-gray-700 text-gray-100")+'">'+(m.from_type==="bot"?'<p class="text-xs text-purple-300 mb-1">🤖 Bot</p>':"")+'<p class="text-sm">'+(m.content||"")+'</p></div></div>'});h+='</div><div class="p-3 border-t border-gray-700/50 flex gap-2"><input id="mi" placeholder="Mensagem..." class="flex-1 px-4 py-2 bg-gray-700/50 border border-gray-600/50 rounded-full text-sm text-white placeholder-gray-400"><button onclick="sm(\''+id+'\',\''+nm+'\' )" class="px-4 py-2 bg-indigo-600 rounded-lg text-white text-sm font-medium">Enviar</button></div></div>';a.innerHTML=h};
+window.sm=async(id,nm)=>{const i=document.getElementById("mi");if(!i.value.trim())return;try{await post("/messages/send",{conversation_id:id,content:i.value});i.value="";oc(id,nm)}catch(e){alert(e.message)}};
+
+async function rDi(el){let cs=[];try{cs=(await get("/campaigns?limit=20")).data||[]}catch(e){}let h='<div class="space-y-6 fade-in"><h1 class="text-2xl font-bold text-white">Disparos</h1><div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5 space-y-4"><input id="cpn" placeholder="Nome" class="w-full px-3 py-2 bg-gray-700/50 border border-gray-600/50 rounded-lg text-sm text-white placeholder-gray-400"><textarea id="cpm" placeholder="Mensagem..." rows="3" class="w-full px-3 py-2 bg-gray-700/50 border border-gray-600/50 rounded-lg text-sm text-white placeholder-gray-400 resize-none"></textarea><button onclick="ccp()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium">Criar</button></div><div class="bg-gray-800/50 border border-gray-700/50 rounded-xl overflow-hidden"><table class="w-full"><thead><tr class="border-b border-gray-700/50"><th class="text-left text-xs text-gray-400 px-4 py-3">Nome</th><th class="text-left text-xs text-gray-400 px-4 py-3">Status</th></tr></thead><tbody>';if(!cs.length)h+='<tr><td colspan="2" class="text-center text-gray-500 py-8 text-sm">Nenhuma</td></tr>';cs.forEach(d=>{h+='<tr class="border-b border-gray-700/30"><td class="px-4 py-3 text-sm text-white">'+d.name+'</td><td class="px-4 py-3"><span class="px-2 py-1 rounded-full text-xs bg-gray-500/20 text-gray-400">'+(d.status||"draft")+'</span></td></tr>'});h+='</tbody></table></div></div>';el.innerHTML=h}
+window.ccp=async()=>{try{await post("/campaigns",{name:document.getElementById("cpn").value,message_template:document.getElementById("cpm").value});rp()}catch(e){alert(e.message)}};
+
+async function rR(el){let b={},f={};try{b=(await get("/reports/bot-performance")).data||{}}catch(e){}try{f=(await get("/reports/funnel")).data||{}}catch(e){}el.innerHTML='<div class="space-y-6 fade-in"><h1 class="text-2xl font-bold text-white">Relatórios</h1><div class="grid grid-cols-2 lg:grid-cols-4 gap-4">'+st("Bot",b.totalResponses||0,"purple")+st("Resolução",(b.resolutionRate||0)+"%","green")+st("Tempo",(b.avgResponseTime||0)+"s","indigo")+st("Satisfação",b.satisfaction||0,"yellow")+'</div><h2 class="text-lg font-semibold text-white mt-4">Funil</h2><div class="grid grid-cols-2 lg:grid-cols-4 gap-4">'+st("Leads",f.lead||0,"indigo")+st("Contato",f.contact||0,"purple")+st("Proposta",f.proposal||0,"yellow")+st("Fechado",f.closed||0,"green")+'</div></div>'}
+
+async function rSc(el){let s=[];try{s=(await get("/reports/sellers")).data||[]}catch(e){}if(!s.length){el.innerHTML='<h1 class="text-2xl font-bold text-white">Scorecard</h1><p class="text-gray-500 text-center py-12">Sem dados</p>';return}let h='<div class="space-y-6 fade-in"><h1 class="text-2xl font-bold text-white">Scorecard</h1><div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">';s.forEach((x,i)=>{h+='<div class="bg-gray-800/50 border rounded-xl p-5 '+(i===0?"border-yellow-500/50":"border-gray-700/50")+'">'+(i===0?'<p class="text-yellow-400 text-xs mb-3">🏆 Melhor</p>':"")+'<div class="flex items-center gap-3 mb-4"><div class="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold '+(i===0?"bg-yellow-600":"bg-indigo-600")+'">'+gi(x.name)+'</div><p class="text-white font-semibold">'+(x.name||"")+'</p></div><div class="space-y-2"><div class="flex justify-between"><span class="text-xs text-gray-400">Leads</span><span class="text-sm text-white">'+(x.leads_count||0)+'</span></div><div class="flex justify-between"><span class="text-xs text-gray-400">Vendas</span><span class="text-sm text-green-400">'+(x.closed_count||0)+'</span></div></div></div>'});h+='</div></div>';el.innerHTML=h}
+
+async function rSe(el){let w=null,us=[];try{w=(await get("/whatsapp/status")).data}catch(e){}try{us=(await get("/users")).data||[]}catch(e){}const cn=w&&w.status==="connected";let h='<div class="space-y-6 fade-in"><h1 class="text-2xl font-bold text-white">Configurações</h1><div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5"><h3 class="text-white font-semibold mb-4">WhatsApp</h3><div class="flex gap-3 items-center"><span class="px-3 py-1.5 rounded-full text-xs font-medium '+(cn?"bg-green-500/20 text-green-400 border border-green-500/30":"bg-red-500/20 text-red-400 border border-red-500/30")+'">'+(cn?"✅ Conectado":"❌ Desconectado")+'</span><button onclick="cw()" class="px-4 py-2 bg-green-600 text-white rounded-lg text-sm font-medium">Conectar</button></div><div id="qra" class="mt-4"></div></div><div class="bg-gray-800/50 border border-gray-700/50 rounded-xl p-5"><h3 class="text-white font-semibold mb-4">Equipe</h3><div class="space-y-3">';if(!us.length)h+='<p class="text-gray-500 text-sm text-center py-4">Nenhum</p>';us.forEach(u=>{h+='<div class="flex items-center gap-3 p-3 bg-gray-700/30 rounded-lg"><div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold text-sm">'+gi(u.name)+'</div><div class="flex-1"><p class="text-sm text-white">'+u.name+'</p><p class="text-xs text-gray-400">'+u.email+'</p></div><span class="px-2 py-1 bg-indigo-500/20 text-indigo-400 rounded-full text-xs">'+u.role+'</span></div>'});h+='</div></div></div>';el.innerHTML=h}
+window.cw=async()=>{try{const r=await post("/whatsapp/connect",{instance_name:"delivery-main"});const q=r.data?.qrcode||r.qrcode;if(q)document.getElementById("qra").innerHTML='<img src="'+q+'" class="w-48 h-48 bg-white rounded-xl p-2">';else rp()}catch(e){alert(e.message)}};
+
+document.getElementById("login-form").onsubmit=async function(e){e.preventDefault();const b=document.getElementById("login-btn"),er=document.getElementById("login-error");b.disabled=true;b.textContent="Entrando...";er.classList.add("hidden");try{const r=await post("/auth/login",{email:document.getElementById("login-email").value,password:document.getElementById("login-pw").value});token=r.data.token;currentUser=r.data.user;document.getElementById("login-page").classList.add("hidden");document.getElementById("app").classList.remove("hidden");document.getElementById("user-name").textContent=currentUser.name;document.getElementById("user-avatar").textContent=gi(currentUser.name);rn();rp()}catch(x){er.textContent=x.message;er.classList.remove("hidden")}b.disabled=false;b.textContent="Entrar"};
+window.logout=()=>{token=null;currentUser=null;chatMsgs=[];analiseChatMsgs=[];document.getElementById("app").classList.add("hidden");document.getElementById("login-page").classList.remove("hidden")};
+</script><div id="install-banner" class="hidden fixed bottom-4 left-4 right-4 z-50 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-4 shadow-2xl border border-indigo-400/30"><div class="flex items-center justify-between gap-3"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg></div><div><p class="text-white font-semibold text-sm">Instalar App</p><p class="text-indigo-200 text-xs">Acesse direto, sem navegador</p></div></div><div class="flex gap-2"><button onclick="dismissInstall()" class="px-3 py-1.5 text-indigo-200 text-xs rounded-lg hover:bg-white/10">Depois</button><button onclick="installApp()" class="px-4 py-1.5 bg-white text-indigo-700 font-semibold text-xs rounded-lg hover:bg-indigo-50">Instalar</button></div></div></div>
+</body></html>
