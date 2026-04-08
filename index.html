@@ -1,12 +1,27 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<meta charset="UTF-8">
+    <meta name="theme-color" content="#1e1b4b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Delivery Milionário Pro</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<style>body{margin:0;font-family:system-ui,sans-serif}@keyframes spin{to{transform:rotate(360deg)}}.spin{animation:spin 1s linear infinite}input,select,textarea{outline:none}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.fade-in{animation:fadeIn .3s ease}.donut-seg{transition:stroke-dashoffset .6s ease}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}.pulse{animation:pulse 2s ease-in-out infinite}@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}.slide-up{animation:slideUp .4s ease}@media(display-mode:standalone){body{padding-top:env(safe-area-inset-top)}}
-</style>
-<link rel="manifest" href="manifest.json"><meta name="theme-color" content="#1e1b4b"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-status-bar-style" content="black-translucent"><meta name="apple-mobile-web-app-title" content="Delivery Pro"><link rel="apple-touch-icon" href="icon-192.png"><meta name="mobile-web-app-capable" content="yes"><meta name="application-name" content="Delivery Milionário Pro"><meta name="description" content="CRM inteligente com WhatsApp e IA">
+<style>body{margin:0;font-family:system-ui,sans-serif}@keyframes spin{to{transform:rotate(360deg)}}.spin{animation:spin 1s linear infinite}input,select,textarea{outline:none}@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}.fade-in{animation:fadeIn .3s ease}.donut-seg{transition:stroke-dashoffset .6s ease}@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}.pulse{animation:pulse 2s ease-in-out infinite}@keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}.slide-up{animation:slideUp .4s ease}
+    @media all and (display-mode: standalone) {
+      body { padding-top: env(safe-area-inset-top); }
+    }
+    #installBanner { position:fixed;bottom:0;left:0;right:0;background:linear-gradient(135deg,#4f46e5,#7c3aed);padding:16px 20px;display:flex;align-items:center;gap:12px;z-index:9999;box-shadow:0 -4px 20px rgba(0,0,0,0.3); }
+    #installBanner .ib-icon { width:40px;height:40px;background:rgba(255,255,255,0.2);border-radius:10px;display:flex;align-items:center;justify-content:center; }
+    #installBanner .ib-text { flex:1; }
+    #installBanner .ib-text strong { color:#fff;font-size:14px;display:block; }
+    #installBanner .ib-text span { color:rgba(255,255,255,0.8);font-size:12px; }
+    #installBanner button { padding:8px 16px;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;border:none; }
+    #installBanner .ib-dismiss { background:transparent;color:rgba(255,255,255,0.8); }
+    #installBanner .ib-install { background:#fff;color:#4f46e5; }
+  </style>
 </head>
 <body class="bg-gray-900 text-gray-100">
 <div id="login-page" class="min-h-screen flex items-center justify-center p-4"><div class="w-full max-w-md"><div class="text-center mb-8"><div class="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center mx-auto mb-4"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg></div><h1 class="text-2xl font-bold text-white">Delivery Milionário Pro</h1><p class="text-gray-400 text-sm mt-2">CRM inteligente com WhatsApp e IA</p></div><div class="bg-gray-800/80 border border-gray-700/50 rounded-2xl p-6"><h2 class="text-lg font-semibold text-white mb-4">Entrar</h2><div id="login-error" class="hidden mb-4 p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-400 text-sm"></div><form id="login-form" class="space-y-4"><div><label class="block text-sm text-gray-400 mb-1">Email</label><input id="login-email" type="email" required placeholder="seu@email.com" class="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600/50 rounded-lg text-sm text-white placeholder-gray-400 focus:border-indigo-500"></div><div><label class="block text-sm text-gray-400 mb-1">Senha</label><input id="login-pw" type="password" required placeholder="........" class="w-full px-4 py-2.5 bg-gray-700/50 border border-gray-600/50 rounded-lg text-sm text-white placeholder-gray-400 focus:border-indigo-500"></div><button type="submit" id="login-btn" class="w-full py-2.5 bg-indigo-600 hover:bg-indigo-500 disabled:opacity-50 text-white rounded-lg text-sm font-medium">Entrar</button></form></div></div></div>
@@ -387,5 +402,19 @@ window.cw=async()=>{try{const r=await post("/whatsapp/connect",{instance_name:"d
 
 document.getElementById("login-form").onsubmit=async function(e){e.preventDefault();const b=document.getElementById("login-btn"),er=document.getElementById("login-error");b.disabled=true;b.textContent="Entrando...";er.classList.add("hidden");try{const r=await post("/auth/login",{email:document.getElementById("login-email").value,password:document.getElementById("login-pw").value});token=r.data.token;currentUser=r.data.user;document.getElementById("login-page").classList.add("hidden");document.getElementById("app").classList.remove("hidden");document.getElementById("user-name").textContent=currentUser.name;document.getElementById("user-avatar").textContent=gi(currentUser.name);rn();rp()}catch(x){er.textContent=x.message;er.classList.remove("hidden")}b.disabled=false;b.textContent="Entrar"};
 window.logout=()=>{token=null;currentUser=null;chatMsgs=[];analiseChatMsgs=[];document.getElementById("app").classList.add("hidden");document.getElementById("login-page").classList.remove("hidden")};
-</script><div id="install-banner" class="hidden fixed bottom-4 left-4 right-4 z-50 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl p-4 shadow-2xl border border-indigo-400/30"><div class="flex items-center justify-between gap-3"><div class="flex items-center gap-3"><div class="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 5v14M5 12l7 7 7-7"/></svg></div><div><p class="text-white font-semibold text-sm">Instalar App</p><p class="text-indigo-200 text-xs">Acesse direto, sem navegador</p></div></div><div class="flex gap-2"><button onclick="dismissInstall()" class="px-3 py-1.5 text-indigo-200 text-xs rounded-lg hover:bg-white/10">Depois</button><button onclick="installApp()" class="px-4 py-1.5 bg-white text-indigo-700 font-semibold text-xs rounded-lg hover:bg-indigo-50">Instalar</button></div></div></div>
+
+    // PWA Install
+    let deferredPrompt;
+    window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredPrompt = e; document.getElementById('installBanner').style.display = 'flex'; });
+    function installApp() { if(deferredPrompt){ deferredPrompt.prompt(); deferredPrompt.userChoice.then(()=>{ deferredPrompt=null; document.getElementById('installBanner').style.display='none'; }); } }
+    function dismissInstall() { document.getElementById('installBanner').style.display='none'; }
+    // Register Service Worker
+    if('serviceWorker' in navigator){ navigator.serviceWorker.register('sw.js').then(r=>console.log('SW registered')).catch(e=>console.log('SW error',e)); }
+  </script>
+  <div id="installBanner" style="display:none">
+    <div class="ib-icon"><svg width="20" height="20" fill="none" stroke="#fff" stroke-width="2"><path d="M12 5v10M7 10l5 5 5-5"/><path d="M3 15v2a2 2 0 002 2h14a2 2 0 002-2v-2" stroke-linecap="round"/></svg></div>
+    <div class="ib-text"><strong>Instalar App</strong><span>Acesse sem navegador</span></div>
+    <button class="ib-dismiss" onclick="dismissInstall()">Depois</button>
+    <button class="ib-install" onclick="installApp()">Instalar</button>
+  </div>
 </body></html>
